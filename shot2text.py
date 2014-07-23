@@ -10,7 +10,6 @@
 ## WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 ## implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-__doc__ = 'TODO'
 __all__ = []
 
 import os, sys, re, operator, cairo
@@ -27,7 +26,7 @@ TS    = 18
 
 def main():
     if len(sys.argv) < 2 or not os.path.exists(sys.argv[1]):
-        log('syntax: {} <image file>.'.format(sys.argv[0]), file = sys.stderr)
+        log('Usage: {} <image file>.'.format(sys.argv[0]))
         sys.exit(1)
 
     try:
@@ -135,31 +134,11 @@ def get_letters(roi):
         print(wd)
     print(-1)
 
-def render(letters):
-    SEP = 1
-    x0  = min(l[2] for l in letters if l[0] != SPACE)
-    y0  = min(l[3] for l in letters if l[0] != SPACE)
-    w   = max(l[2] for l in letters if l[0] != SPACE) + TS - x0 + 2 * SEP
-    h   = max(l[3] for l in letters if l[0] != SPACE) + TS - y0 + 2 * SEP
-    out = cairo.ImageSurface(cairo.FORMAT_ARGB32, w, h)
-    cr  = cairo.Context(out)
-
-    for l in letters:
-        i    = l[0]
-        x, y = l[2] - x0 + SEP, l[3] - y0 + SEP
-        tile = cairo.ImageSurface.create_from_png(os.path.join(DATAP, 'avg', '{}.png'.format(i)))
-        cr.set_source_surface(tile, x, y)
-        cr.paint()
-        tile.finish()
-    out.write_to_png(re.sub(r'^([^\.]*)(\.[^\.]+)?$', r'\1_in.png', sys.argv[1]))
-
 def skip_range(x, matchfun, align = 0):
     i = 0
     while i < x - TS:
         yield i
-        if matchfun():
-            i += TS + align
-        i += 1
+        i += TS + align + 1 if matchfun() else 1
 
 def load_tiles():
     try:
@@ -184,7 +163,7 @@ def load_tiles():
 def match_tile(d, tiles, i, j, w):
     mina, mins = -1, 10000
     def check_tile(td):
-        nonlocal mina, mins
+        nonlocal a, mina, mins
         kl = s = 0
         for k in range(TS):
             for l in range(TS):
@@ -198,6 +177,24 @@ def match_tile(d, tiles, i, j, w):
         for t in tl:
             check_tile(t.getdata())
     return mina
+
+def render(letters):
+    SEP = 1
+    x0  = min(l[2] for l in letters if l[0] != SPACE)
+    y0  = min(l[3] for l in letters if l[0] != SPACE)
+    w   = max(l[2] for l in letters if l[0] != SPACE) + TS - x0 + 2 * SEP
+    h   = max(l[3] for l in letters if l[0] != SPACE) + TS - y0 + 2 * SEP
+    out = cairo.ImageSurface(cairo.FORMAT_ARGB32, w, h)
+    cr  = cairo.Context(out)
+
+    for l in letters:
+        i    = l[0]
+        x, y = l[2] - x0 + SEP, l[3] - y0 + SEP
+        tile = cairo.ImageSurface.create_from_png(os.path.join(DATAP, 'avg', '{}.png'.format(i)))
+        cr.set_source_surface(tile, x, y)
+        cr.paint()
+        tile.finish()
+    out.write_to_png(re.sub(r'^([^\.]*)(\.[^\.]+)?$', r'\1_in.png', sys.argv[1]))
 
 if __name__ == '__main__':
     main()

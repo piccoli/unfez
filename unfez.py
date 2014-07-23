@@ -10,7 +10,6 @@
 ## WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 ## implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-__doc__ = 'TODO'
 __all__ = [ 'log' ]
 
 import os, sys, re, random, math, string, bz2, pickle, cairo
