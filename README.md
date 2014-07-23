@@ -21,11 +21,11 @@ along with a PDF depicting the translated alphabet
 
 FEZ uses a simple substitution cipher
 (http://en.wikipedia.org/wiki/Substitution_cipher) to encode its
-hidden messages, and in fact it is quite easy to figure out the
-encoding by hand.  However, automating this task is not as
-trivial, so it is an interesting programming challenge. Plus, with
-a few changes, this code should work with *any* substitution
-alphabets!
+hidden messages, and in fact it is quite easy (albeit tedious) to
+figure out the encoding by hand.  However, automating this task is
+not as trivial, so it is an interesting programming challenge.
+Plus, with a few changes, this code should work with *any*
+substitution alphabets!
 
 The decoding algorithm first constructs a 4-gram
 (http://en.wikipedia.org/wiki/Ngram) table from an English language
