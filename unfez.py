@@ -130,10 +130,10 @@ def build_ngram(n = 4):
     defp[NAL] = 1
 
     with bz2.open(CORPUS_FILE, 'rt') as f:
-        for s in list(list(re.sub(r'[^a-z]', r'', t) for t in s.strip().split()) for s in f.readlines()):
+        for s in f.readlines():
             prev = tuple(NAL for _ in range(n - 1))
-            for w in s:
-                for l in w + NAL:
+            for w in tuple(re.sub(r'[^a-z]', r'', t) + NAL for t in s.strip().split()):
+                for l in w:
                     if prev not in NGram:
                         NGram[prev] = dict(defp)
                     NGram[prev][l] += 1
