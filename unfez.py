@@ -36,7 +36,7 @@ Layout = namedtuple('Layout', 'fontname fontsize pagewidth pageheight margins co
 class State:
     def __init__(self, s = ALPHABET, e = None):
 
-        if type(s) != list:
+        if type(s) is not list:
             raise TypeError("'list' expected, but received a '{}' instead!".format(type(s)))
 
         if len(s) != 26 or not all(map(lambda x: type(x) is str and len(x) == 1, s)):
