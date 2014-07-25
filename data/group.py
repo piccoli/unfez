@@ -16,9 +16,9 @@ import sys, glob, operator, random, os
 from PIL       import Image
 from functools import reduce, lru_cache
 
-SEED     = 12345
+SEED     = 130000
 K        = 24
-RESTARTS = 2
+RESTARTS = 2000
 MAXINT   = (1 << 31) - 1
 
 class Cluster:
@@ -92,8 +92,7 @@ def update(s, x, n):
         if len(k.xt1) == 0:
             k.m = [ MAXINT for i in range(n) ]
             continue
-        #k.m = [ sum(x[j][i] for j in k.xt1) / len(k.xt1) for i in range(n) ]
-        k.m = [ reduce(operator.mul, (x[j][i] for j in k.xt1)) ** (1. / len(k.xt1)) for i in range(n) ]
+        k.m = [ sum(x[j][i] for j in k.xt1) / len(k.xt1) for i in range(n) ]
 
 @lru_cache(maxsize = 1 << 16)
 def dist(a: tuple, b: tuple):

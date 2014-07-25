@@ -24,10 +24,10 @@ for i in $(find . -mindepth 1 -type d); do
     fi
 done
 
-#for (( i = 0; i < 25; ++i )); do
-#    echo ${tiles[$i]}
-#done > $INDEXFILE
-echo ${tiles[@]} > $INDEXFILE
+echo -n "${tiles[0]}"
+for (( i = 1; i < 25; ++i )); do
+    echo -n " ${tiles[$i]}"
+done > $INDEXFILE
 
 shopt -u nullglob
 

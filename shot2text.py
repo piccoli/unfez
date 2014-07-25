@@ -21,7 +21,6 @@ from unfez     import log
 DATAP = 'data'
 SYMF  = os.path.join(DATAP, 'sym.png'  )
 SYMIF = os.path.join(DATAP, 'sym.index')
-SPACE = 24
 TS    = 18
 
 def main():
@@ -123,13 +122,22 @@ def get_letters(roi):
             if a == -1:
                 continue
             letters.append((a, (w - j - TS) * h + i, j, i))
-            if a != SPACE:
+            if a < len(tiles) - 1:
                 row_matched = col_matched = True
 
     letters.sort(key = lambda x: x[1])
-    render(letters)
+    render(letters, tiles)
 
-    words = [ x.strip() for x in ' '.join(map(lambda x: str(x[0]), letters)).split(str(SPACE)) ]
+    words = [ w.strip()
+                for w in ' '
+                         .join(
+                             str(l[0])
+                                 for l in letters
+                         )
+                         .split(
+                             str(len(tiles) - 1)
+                         )
+            ]
     for wd in filter(len, words):
         print(wd)
     print(-1)
@@ -157,7 +165,6 @@ def load_tiles():
             tiles[i].append(sym.crop((x, y, x + TS, y + TS)))
             x += TS
         y += TS
-
     return tiles
 
 def match_tile(d, tiles, i, j, w):
@@ -178,12 +185,12 @@ def match_tile(d, tiles, i, j, w):
             check_tile(t.getdata())
     return mina
 
-def render(letters):
+def render(letters, tiles):
     SEP = 1
-    x0  = min(l[2] for l in letters if l[0] != SPACE)
-    y0  = min(l[3] for l in letters if l[0] != SPACE)
-    w   = max(l[2] for l in letters if l[0] != SPACE) + TS - x0 + 2 * SEP
-    h   = max(l[3] for l in letters if l[0] != SPACE) + TS - y0 + 2 * SEP
+    x0  = min(l[2] for l in letters if l[0] != len(tiles) - 1)
+    y0  = min(l[3] for l in letters if l[0] != len(tiles) - 1)
+    w   = max(l[2] for l in letters if l[0] != len(tiles) - 1) + TS - x0 + 2 * SEP
+    h   = max(l[3] for l in letters if l[0] != len(tiles) - 1) + TS - y0 + 2 * SEP
     out = cairo.ImageSurface(cairo.FORMAT_ARGB32, w, h)
     cr  = cairo.Context(out)
 

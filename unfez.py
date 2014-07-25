@@ -19,12 +19,13 @@ from collections import namedtuple
 CORPUS_FILE = 'datasets/wiki.txt.bz2'
 NGRAM_CACHE = 'ngram.pickle'
 NGRAM_SIZE  = 4
-NAL         = '|'
+WSEP        = '|'
 SEED        = 130000
+ALPHABET    = list(string.ascii_lowercase)
 ADJUST      = 256
-K           = 20.
 ITERATIONS  = 512
-T           = lambda x: .9975 ** (x * 1e3)
+T           = lambda x: .9975 ** (x * 1.7e3)
+K           = 20.
 NZ          = 1e-1
 DATAP       = os.path.join('data', 'avg')
 PDFOUT      = 'fezetta.pdf'
@@ -33,7 +34,7 @@ MM          = 25.4 * .013837 # Base unit is points.
 Layout = namedtuple('Layout', 'margins colwidth rowheight rows xtextsep ytextsep pagewidth pageheight fontsize fontname tilesize')
 
 class State:
-    def __init__(self, s = list(string.ascii_lowercase), e = None):
+    def __init__(self, s = ALPHABET, e = None):
 
         if type(s) != list:
             raise TypeError("'list' expected, but received a '{}' instead!".format(type(s)))
@@ -42,7 +43,6 @@ class State:
             raise ValueError('You must provide a list containing exactly 26 single-letter strings!')
 
         self.s = list(s)
-        #random.shuffle(self.s)
         self.e = e if e else self.__error()
 
     def jump(self):
@@ -55,16 +55,18 @@ class State:
                 return
 
     def __error(self):
+        global Sentences
         return sum(-math.log(
                        State.sentence_likelihood(
-                           NAL.join(
+                           WSEP.join(
                                ''.join(self.s[x]
                                for x in w)
-                           for w in s) + NAL)
+                           for w in s) + WSEP)
                    )
                for s in Sentences)
 
     def __str__(self):
+        global Sentences
         return '\n'.join(
                    ' '.join(
                        ''.join(self.s[x]
@@ -73,7 +75,8 @@ class State:
                for s in Sentences)
 
     def sentence_likelihood(s):
-        prev = tuple(NAL for _ in range(NGram['size'] - 1))
+        global NGram
+        prev = tuple(WSEP for _ in range(NGram['size'] - 1))
         p    = 1.
         for l in s:
             #p *= 2. * NZ * math.exp(-NZ / 1.05) if prev not in NGram else NGram[prev][l]
@@ -84,26 +87,27 @@ class State:
         return p
 
 def main():
-    random.seed(SEED)
-    parse_input()
-    build_ngram(NGRAM_SIZE)
-    mapping = minimize()
-    log(mapping)
+    global NGram, Sentences
+    Sentences = parse_input()
+    NGram     = build_ngram()
+    mapping   = minimize   ()
+
+    log   (mapping)
     render(mapping)
 
 def parse_input():
-    global Sentences
-    Sentences = []
+    sentences = []
     w         = []
     for s in sys.stdin.readlines():
         l = list(map(int, s.strip().split()))
         if l[0] == -1:
-            Sentences.append(w)
+            sentences.append(w)
             w = []
             continue
         w.append(l)
     if len(w) > 0:
-        Sentences.append(w)
+        sentences.append(w)
+    return sentences
 
 def log(*args, **kwargs):
     if 'file' in kwargs:
@@ -111,50 +115,51 @@ def log(*args, **kwargs):
     print(*args, file = sys.stderr, **kwargs)
     sys.stderr.flush()
 
-def build_ngram(n = 4):
-    global NGram
-
+def build_ngram(n = NGRAM_SIZE):
     if os.path.exists(NGRAM_CACHE):
         with open(NGRAM_CACHE, 'rb') as f:
-            NGram = pickle.load(f)
-            if 'size' in NGram and NGram['size'] == n:
-                return
+            ngram = pickle.load(f)
+            if 'size' in ngram and ngram['size'] == n:
+                return ngram
 
-    log('Constructing {}-gram from training data (this may take a while)...'.format(NGRAM_SIZE), end = '')
-    NGram         = {}
-    NGram['size'] = n
+    log('Constructing {}-gram from training data (this may take a while)...'.format(n), end = '')
+    ngram         = {}
+    ngram['size'] = n
 
     defp = {}
     for l in string.ascii_lowercase:
         defp[l] = 1
-    defp[NAL] = 1
+    defp[WSEP] = 1
 
     with bz2.open(CORPUS_FILE, 'rt') as f:
         for s in f.readlines():
-            prev = tuple(NAL for _ in range(n - 1))
-            for w in tuple(re.sub(r'[^a-z]', r'', t) + NAL for t in s.strip().split()):
+            prev = tuple(WSEP for _ in range(n - 1))
+            for w in tuple(re.sub(r'[^a-z]', r'', t) + WSEP for t in s.strip().split()):
                 for l in w:
-                    if prev not in NGram:
-                        NGram[prev] = dict(defp)
-                    NGram[prev][l] += 1
+                    if prev not in ngram:
+                        ngram[prev] = dict(defp)
+                    ngram[prev][l] += 1
                     prev = prev[1:] + (l,)
 
-    for prev in NGram.keys():
+    for prev in ngram.keys():
         if prev == 'size':
             continue
-        following = NGram[prev]
+        following = ngram[prev]
         total = sum(following.values())
         for lk in following.keys():
             following[lk] /= total
             #following[lk] *= 2. * math.exp(-following[lk] / 1.05)
 
     with open(NGRAM_CACHE, 'wb') as f:
-        pickle.dump(NGram, f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(ngram, f, pickle.HIGHEST_PROTOCOL)
     log('done!')
+    return ngram
 
 def minimize():
-    log('Decoding...')
+    random.seed(SEED)
+    random.shuffle(ALPHABET) # Shake to make it more interesting.
     old, best = State(), None
+    log('Decoding...')
     sys.stderr.write('\033[2J')
     for k in range(ITERATIONS):
         t = T(k / ITERATIONS)
@@ -163,11 +168,11 @@ def minimize():
             new = State(old.s)
             new.jump()
             if new.e < old.e or random.random() < math.exp(-(new.e - old.e) / (K * t)):
-                log('(temp: {:4.2f} err: {:4.2f} delta: {:4.2f})'.format(t, new.e, abs(old.e - new.e)), end = '\r')
+                log('Current (temp: {:4.2f} err: {:4.2f} delta: {:4.2f}):'.format(t, new.e, abs(old.e - new.e)), end = '\r')
                 old = State(new.s, new.e)
                 if not best or new.e < best.e:
                     best = State(new.s, new.e)
-        log('\n{}\n\nbest (err: {:4.2f})\n{}'.format(new, best.e, best))
+        log('\n{}\n\nBest (err: {:4.2f}):\n{}'.format(new, best.e, best))
     log('\ndone!')
     return best
 
@@ -176,9 +181,9 @@ def render(mapping):
     l = Layout(margins    = 50.   ,
                colwidth   = 70.   ,
                rowheight  = 15.   ,
-               rows       = 13    ,
+               rows       = 12    ,
                xtextsep   = 25.   ,
-               ytextsep   = 6.5   ,
+               ytextsep   = 6.75  ,
                pagewidth  = 210.  ,
                pageheight = 297.  ,
                fontsize   = 32    ,
@@ -191,7 +196,7 @@ def render(mapping):
     cr.select_font_face(l.fontname)
     cr.set_font_size   (l.fontsize)
 
-    for i in range(26):
+    for i in range(24):
         x = (l.margins + l.colwidth  * (i // l.rows)) / MM
         y = (l.margins + l.rowheight * (i %  l.rows)) / MM
         tile = cairo.ImageSurface.create_from_png(os.path.join(DATAP, '{}.png'.format(i)))
