@@ -31,7 +31,7 @@ DATAP       = os.path.join('data', 'avg')
 PDFOUT      = 'fezetta.pdf'
 MM          = 25.4 * .013837 # Base unit is points.
 
-Layout = namedtuple('Layout', 'margins colwidth rowheight rows xtextsep ytextsep pagewidth pageheight fontsize fontname tilesize')
+Layout = namedtuple('Layout', 'fontname fontsize pagewidth pageheight margins colwidth rowheight xtextsep ytextsep tilesize rows')
 
 class State:
     def __init__(self, s = ALPHABET, e = None):
@@ -99,15 +99,15 @@ def parse_input():
     sentences = []
     w         = []
     for s in sys.stdin.readlines():
-        l = list(map(int, s.strip().split()))
+        l = tuple(map(int, s.strip().split()))
         if l[0] == -1:
-            sentences.append(w)
+            sentences.append(tuple(w))
             w = []
             continue
         w.append(l)
     if len(w) > 0:
-        sentences.append(w)
-    return sentences
+        sentences.append(tuple(w))
+    return tuple(sentences)
 
 def log(*args, **kwargs):
     if 'file' in kwargs:
@@ -134,7 +134,7 @@ def build_ngram(n = NGRAM_SIZE):
     with bz2.open(CORPUS_FILE, 'rt') as f:
         for s in f.readlines():
             prev = tuple(WSEP for _ in range(n - 1))
-            for w in tuple(re.sub(r'[^a-z]', r'', t) + WSEP for t in s.strip().split()):
+            for w in tuple(re.sub(r'[^a-z]', r'', t.lower()) + WSEP for t in s.strip().split()):
                 for l in w:
                     if prev not in ngram:
                         ngram[prev] = dict(defp)
@@ -178,35 +178,35 @@ def minimize():
 
 def render(mapping):
     # Dotted numbers are dimensions represented in millimeters.
-    l = Layout(margins    = 50.   ,
-               colwidth   = 70.   ,
-               rowheight  = 15.   ,
-               rows       = 12    ,
-               xtextsep   = 25.   ,
-               ytextsep   = 6.75  ,
-               pagewidth  = 210.  ,
-               pageheight = 297.  ,
-               fontsize   = 32    ,
-               fontname   = 'Sans',
-               tilesize   = 10.   )
+    l = Layout(fontname   = 'Sans'   ,
+               fontsize   = 32       ,
+               pagewidth  = 210. / MM,
+               pageheight = 297. / MM,
+               margins    = 50.  / MM,
+               colwidth   = 70.  / MM,
+               rowheight  = 15.  / MM,
+               xtextsep   = 25.  / MM,
+               ytextsep   = 6.75 / MM,
+               tilesize   = 10.  / MM,
+               rows       = 12       )
 
-    pdf = cairo.PDFSurface(PDFOUT, l.pagewidth / MM, l.pageheight / MM)
+    pdf = cairo.PDFSurface(PDFOUT, l.pagewidth, l.pageheight)
     cr  = cairo.Context(pdf)
 
     cr.select_font_face(l.fontname)
     cr.set_font_size   (l.fontsize)
 
     for i in range(24):
-        x = (l.margins + l.colwidth  * (i // l.rows)) / MM
-        y = (l.margins + l.rowheight * (i %  l.rows)) / MM
+        x = l.margins + l.colwidth  * (i // l.rows)
+        y = l.margins + l.rowheight * (i %  l.rows)
         tile = cairo.ImageSurface.create_from_png(os.path.join(DATAP, '{}.png'.format(i)))
         ext = cr.text_extents(mapping.s[i])
-        cr.move_to(x + l.xtextsep / MM - (ext[2] / 2. + ext[0]),
-                   y + l.ytextsep / MM - (ext[3] / 2. + ext[1]))
+        cr.move_to(x + l.xtextsep - (ext[2] / 2. + ext[0]),
+                   y + l.ytextsep - (ext[3] / 2. + ext[1]))
         cr.show_text(mapping.s[i])
         cr.save()
-        s = min(l.tilesize / MM / tile.get_width (),
-                l.tilesize / MM / tile.get_height())
+        s = min(l.tilesize / tile.get_width (),
+                l.tilesize / tile.get_height())
         cr.translate(x, y)
         cr.scale(s, s)
         cr.set_source_surface(tile, 0, 0)
