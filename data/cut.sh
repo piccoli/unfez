@@ -13,10 +13,10 @@ cut() {
     done
 }
 
-# Extract sample characters from a1...a6.png.
-readonly -a files=(a[1-6].png)
-readonly -a rows=(20 17 17 20 18 17)
-readonly -a cols=(6  6  6  3  5  4 )
+# Extract sample characters from a1...a11.png.
+readonly -a files=(a{1..11}.png)
+readonly -a rows=(20 17 17 20 18 17 10 8 14 13 6)
+readonly -a cols=(6  6  6  3  5  4  3  2 4  4  2)
 
 declare i
 for (( i = 0; i < ${#files[@]}; ++i )); do

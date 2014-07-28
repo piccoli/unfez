@@ -22,6 +22,7 @@ DATAP = 'data'
 SYMF  = os.path.join(DATAP, 'sym.png'  )
 SYMIF = os.path.join(DATAP, 'sym.index')
 TS    = 18
+MAXD  = 1.
 
 def main():
     if len(sys.argv) < 2 or not os.path.exists(sys.argv[1]):
@@ -35,10 +36,7 @@ def main():
         sys.exit(1)
 
     prepare(img)
-
-    roi = get_roi(*get_bb(*img.size))[1]
-    if roi:
-        get_letters(img.crop(roi))
+    get_letters( img.crop( get_roi( *get_bb( *img.size ) )[1] ) )
 
 def prepare(img):
     global CSum
@@ -82,7 +80,7 @@ def get_roi(a, b, c, d, M = {}):
 def maxsum(a, b, c, d):
     l = c
     maxhere = 0
-    maxs, roi = 0, None
+    maxs, roi = 0, (c, a, d, b)
     for j in range(c, d + 1):
         s = maxhere + csum(j, a, b)
         if s < 0:
@@ -96,22 +94,11 @@ def maxsum(a, b, c, d):
 def csum(j, a, b):
     return CSum[j][b + 1] - CSum[j][a]
 
-def get_bb(w, h):
-    a, b, c, d = h, 0, w, 0
-    for j in range(w):
-        for i in range(h):
-            if csum(j, i, i) > 0:
-                a = min(a, i)
-                b = max(b, i)
-                c = min(c, j)
-                d = max(d, j)
-    return a, b, c, d
-
 def get_letters(roi):
     tiles   = load_tiles()
     letters = []
     w, h    = roi.size
-    d       = [ 255 - grayscale(c) for c in roi.getdata() ]
+    d       = [ (255 - grayscale(c)) / 255. for c in roi.getdata() ]
 
     row_matched = False
     for i in skip_range(h, lambda: row_matched, 2):
@@ -144,7 +131,7 @@ def get_letters(roi):
 
 def skip_range(x, matchfun, align = 0):
     i = 0
-    while i < x - TS:
+    while i <= x - TS:
         yield i
         i += TS + align + 1 if matchfun() else 1
 
@@ -162,19 +149,20 @@ def load_tiles():
     for i, c in enumerate(nsym):
         x = 0
         for j in range(c):
-            tiles[i].append(sym.crop((x, y, x + TS, y + TS)))
+            t = sym.crop((x, y, x + TS, y + TS))
+            tiles[i].append([ d / 255. for d in t.getdata() ])
             x += TS
         y += TS
     return tiles
 
 def match_tile(d, tiles, i, j, w):
-    mina, mins = -1, 10000
-    def check_tile(td):
+    mina, mins = -1, MAXD
+    def check_tile(t):
         nonlocal a, mina, mins
         kl = s = 0
         for k in range(TS):
             for l in range(TS):
-                s += (td[kl] - d[(i + k) * w + j + l]) ** 2
+                s += (t[kl] - d[(i + k) * w + j + l]) ** 2
                 if s >= mins:
                     return
                 kl += 1
@@ -182,8 +170,19 @@ def match_tile(d, tiles, i, j, w):
 
     for a, tl in enumerate(tiles):
         for t in tl:
-            check_tile(t.getdata())
+            check_tile(t)
     return mina
+
+def get_bb(w, h):
+    a, b, c, d = h, 0, w, 0
+    for j in range(w):
+        for i in range(h):
+            if csum(j, i, i) > 0:
+                a = min(a, i)
+                b = max(b, i)
+                c = min(c, j)
+                d = max(d, j)
+    return a, b, c, d
 
 def render(letters, tiles):
     SEP = 1

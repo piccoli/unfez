@@ -12,7 +12,7 @@ join() {
 }
 
 declare -A tiles
-for i in $(find . -mindepth 1 -type d); do
+for i in $(find . -mindepth 1 -type d -iname '[0-9]*'); do
     d=$(basename $i)
     a=($d/*)
     n=${#a[@]}
@@ -24,10 +24,10 @@ for i in $(find . -mindepth 1 -type d); do
     fi
 done
 
-echo -n "${tiles[0]}"
+echo -n "${tiles[0]}" > $INDEXFILE
 for (( i = 1; i < 25; ++i )); do
     echo -n " ${tiles[$i]}"
-done > $INDEXFILE
+done >> $INDEXFILE
 
 shopt -u nullglob
 
