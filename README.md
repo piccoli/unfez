@@ -1,7 +1,7 @@
 unFEZ
 ========
 
-A *very* improvised (but equally fun) experiment for performing
+A *very* crude (but equally fun) experiment for performing
 automated cryptanalysis on FEZ's ((C) Polytron Corporation)
 encoded alphabet.
 

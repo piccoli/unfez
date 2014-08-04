@@ -23,8 +23,8 @@ MAXINT   = (1 << 31) - 1
 
 class Cluster:
     def __init__(self, m, xt1 = [], xt = None):
-        assert type(xt1) is list
-        assert type(xt) is None or type(xt) is list
+        assert isinstance(xt1, list)
+        assert isinstance(xt , list) or xt is None
         self.m   = m
         self.xt1 = list(xt1)
         self.xt  = None if xt is None else list(xt)
@@ -45,7 +45,7 @@ def main():
     n = reduce(operator.mul, imgs[0].size)
 
     x = [ im.getdata() for im in imgs ]
-    assert all(filter(lambda c: type(c[0]) is int, x))
+    assert all(filter(lambda c: isinstance(c[0], int), x))
 
     s = [ Cluster(None) for k in range(K) ]
     minw, minm = MAXINT, None

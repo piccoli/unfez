@@ -36,10 +36,10 @@ Layout = namedtuple('Layout', 'fontname fontsize pagewidth pageheight margins co
 class State:
     def __init__(self, s = ALPHABET, e = None):
 
-        if type(s) is not list:
+        if not isinstance(s, list):
             raise TypeError("'list' expected, but received a '{}' instead!".format(type(s)))
 
-        if len(s) != 26 or not all(map(lambda x: type(x) is str and len(x) == 1, s)):
+        if len(s) != 26 or not all(map(lambda x: isinstance(x, str) and len(x) == 1, s)):
             raise ValueError('You must provide a list containing exactly 26 single-letter strings!')
 
         self.s = list(s)
